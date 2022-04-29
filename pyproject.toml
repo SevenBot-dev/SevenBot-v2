@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "sevenbot-v2"
+version = "1.0.0"
+description = ""
+authors = ["sevenc-nanashi <sevenc-nanashi@sevenbot.jp>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+"discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "5a06fa5f" }
+GitPython = "^3.1.27"
+
+[tool.poetry.dev-dependencies]
+black = "^22.3.0"
+poethepoet = "^0.13.1"
+pyproject-flake8 = "^0.0.1-alpha.4"
+isort = "^5.10.1"
+python-dotenv = "^0.20.0"
+
+[tool.black]
+line-length = 120
+
+[tool.flake8]
+ignore="E203,W503"
+
+[tool.poe.tasks]
+lint = "lint:flake8 lint:isort"
+"lint:flake8" = "poetry run pflake8 ."
+"lint:isort" = "isort -c ."
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
