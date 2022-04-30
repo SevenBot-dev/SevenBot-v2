@@ -6,12 +6,14 @@ WORKDIR /app
 RUN pip install poetry
 
 # -- Install requirements
+COPY pyproject.toml .
 COPY poetry.lock .
-RUN poetry install
+ENV POETRY_VIRTUALENVS_CREATE=false
+RUN poetry install --no-dev
 
 # -- Copy the app
 COPY . .
 
 # -- Run the app
 ENV environment=production
-CMD ["python", "app.py"]
+CMD ["python", "main.py"]

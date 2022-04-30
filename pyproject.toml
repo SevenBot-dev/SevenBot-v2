@@ -8,24 +8,30 @@ authors = ["sevenc-nanashi <sevenc-nanashi@sevenbot.jp>"]
 python = "^3.9"
 "discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "5a06fa5f" }
 GitPython = "^3.1.27"
+colorama = "^0.4.4"
+python-dotenv = "^0.20.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
-poethepoet = "^0.13.1"
 pyproject-flake8 = "^0.0.1-alpha.4"
 isort = "^5.10.1"
-python-dotenv = "^0.20.0"
+poethepoet = "^0.13.1"
 
 [tool.black]
 line-length = 120
 
 [tool.flake8]
 ignore="E203,W503"
+max-line-length = 120
+extend-exclude = ".venv"
 
 [tool.poe.tasks]
-lint = "lint:flake8 lint:isort"
+lint = { sequence = ["lint:flake8", "lint:isort"] }
 "lint:flake8" = "poetry run pflake8 ."
 "lint:isort" = "isort -c ."
+format = { sequence = ["format:black", "format:isort"] }
+"format:black" = "poetry run black ."
+"format:isort" = "poetry run isort ."
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
