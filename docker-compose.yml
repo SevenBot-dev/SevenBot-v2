@@ -4,4 +4,4 @@ services:
   main:
     build: .
     env_file:
-      - .env
+      - .env.production

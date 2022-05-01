@@ -28,13 +28,14 @@ def show_banner() -> None:
         ],
     ]
     max_field_length = max(map(lambda field: len(field[0]), fields))
-    print(Fore.CYAN + Style.BRIGHT + "+---------------------------------------+")
-    print(Fore.LIGHTCYAN_EX + Style.BRIGHT + "  SevenBot" + Style.NORMAL + ": Multifunctional Discord bot")
+    print(Fore.CYAN + Style.BRIGHT + "+---------------------------------------<")
+    print(Fore.LIGHTCYAN_EX + Style.BRIGHT + "| SevenBot" + Style.NORMAL + ": Multifunctional Discord bot")
     for raw_field_name, value, color in fields:
         bright = color.replace("[3", "[9")
         field_name = raw_field_name.ljust(max_field_length)
-        print(f"    {color}{field_name}: {bright}{value}")
-    print("")
+        print(Fore.LIGHTCYAN_EX + Style.BRIGHT + "|" + Style.NORMAL + f"   {color}{field_name}: {bright}{value}")
+    print(Fore.LIGHTCYAN_EX + Style.BRIGHT + "^")
     print(Fore.BLACK + "    (c) 2022 sevenc-nanashi,")
     print(Fore.BLACK + "               Licensed under GPLv3")
-    print(Fore.CYAN + Style.BRIGHT + "+---------------------------------------+")
+    print("")
+    print("")

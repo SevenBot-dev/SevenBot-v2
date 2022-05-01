@@ -25,6 +25,7 @@ class SevenBot(commands.Bot):
             application_id=int(b64decode(os.environ["TOKEN"].split(".")[0]))
         )
         self.prev_hash = {}
+        self.prev_commands = []
         self.logger = logging.getLogger("SevenBot")
 
     async def on_ready(self) -> None:
@@ -37,10 +38,10 @@ class SevenBot(commands.Bot):
                 continue
             name = file[:-3]
             await self.load_extension(f"src.exts.{name}")
-            await self.sync()
+        await self.sync()
         self.watch_files.start()
 
-    @tasks.loop(seconds=10)
+    @tasks.loop(seconds=1)
     async def watch_files(self) -> None:
         for file in os.listdir("src/exts/"):
             if not file.endswith(".py") or file.startswith("_"):
@@ -50,7 +51,10 @@ class SevenBot(commands.Bot):
             if file_hash != self.prev_hash.get(file):
                 if self.prev_hash.get(file) is not None:
                     self.logger.info("Reloading %s by auto reloading", file)
-                    await self.reload_extension(f"src.exts.{file[:-3]}")
+                    try:
+                        await self.reload_extension(f"src.exts.{file[:-3]}")
+                    except commands.errors.ExtensionNotLoaded:
+                        await self.load_extension(f"src.exts.{file[:-3]}")
                     await self.sync()
                 self.prev_hash[file] = file_hash
 
@@ -62,13 +66,23 @@ class SevenBot(commands.Bot):
     def setup(self) -> None:
         pass
 
+    @property
+    def test_guild(self):
+        return discord.Object(int(os.environ["TEST_GUILD"]))
+
     async def sync(self) -> None:
+        current_commands = list(self.tree.walk_commands())
+        if [c.to_dict() for c in self.prev_commands] == [c.to_dict() for c in current_commands]:
+            self.logger.info("No changes, skipping sync")
+            return
+        self.prev_commands = current_commands
         if self.is_production:
             guild = None
             self.logger.info("Syncing commands globally...")
         else:
-            guild = discord.Object(int(os.environ["TEST_GUILD"]))
-            self.logger.info("Syncing commands in %s...", guild)
+            guild = self.test_guild
+            self.logger.info("Syncing %d commands in %s...", len(current_commands), guild.id)
+
         await self.tree.sync(guild=guild)
 
     async def load_cog(self, cog: Type["Cog"]) -> None:
@@ -79,7 +93,11 @@ class SevenBot(commands.Bot):
         ):
             self.logger.info("Cog is not loaded: %s", cog)
             return
-        await self.add_cog(cog(self), override=True)
+        if self.is_production:
+            guild = None
+        else:
+            guild = self.test_guild
+        await self.add_cog(cog(self), override=True, guild=guild)
 
     @property
     def is_production(self) -> bool:
