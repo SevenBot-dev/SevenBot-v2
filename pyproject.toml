@@ -6,10 +6,11 @@ authors = ["sevenc-nanashi <sevenc-nanashi@sevenbot.jp>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-"discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "5a06fa5f" }
+"discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "eee65ac3" }
 GitPython = "^3.1.27"
 colorama = "^0.4.4"
 python-dotenv = "^0.20.0"
+PyYAML = "^6.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

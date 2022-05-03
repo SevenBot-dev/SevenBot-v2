@@ -1,0 +1,7 @@
+chat_input:
+  ping:
+    _name: "ping"
+    _description: "Pong! Returns the latency of SevenBot."
+    embed:
+      title: ":ping_pong: Pong!"
+      description: "The latency is `{latency}ms`."

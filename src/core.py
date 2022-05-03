@@ -10,6 +10,7 @@ from discord.ext import commands, tasks
 if TYPE_CHECKING:
     from .exts._common import Cog
 from .exts._common import CogFlag
+from . import lang  # noqa: F401
 
 
 class SevenBot(commands.Bot):
