@@ -44,20 +44,23 @@ class SevenBot(commands.Bot):
 
     @tasks.loop(seconds=1)
     async def watch_files(self) -> None:
-        for file in os.listdir("src/exts/"):
-            if not file.endswith(".py") or file.startswith("_"):
-                continue
-            with open(f"src/exts/{file}", "rb") as f:
-                file_hash = hashlib.sha256(f.read()).hexdigest()
-            if file_hash != self.prev_hash.get(file):
-                if self.prev_hash.get(file) is not None:
-                    self.logger.info("Reloading %s by auto reloading", file)
-                    try:
-                        await self.reload_extension(f"src.exts.{file[:-3]}")
-                    except commands.errors.ExtensionNotLoaded:
-                        await self.load_extension(f"src.exts.{file[:-3]}")
-                    await self.sync()
-                self.prev_hash[file] = file_hash
+        try:
+            for file in os.listdir("src/exts/"):
+                if not file.endswith(".py") or file.startswith("_"):
+                    continue
+                with open(f"src/exts/{file}", "rb") as f:
+                    file_hash = hashlib.sha256(f.read()).hexdigest()
+                if file_hash != self.prev_hash.get(file):
+                    if self.prev_hash.get(file) is not None:
+                        self.logger.info("Reloading %s by auto reloading", file)
+                        try:
+                            await self.reload_extension(f"src.exts.{file[:-3]}")
+                        except commands.errors.ExtensionNotLoaded:
+                            await self.load_extension(f"src.exts.{file[:-3]}")
+                        await self.sync()
+                    self.prev_hash[file] = file_hash
+        except Exception as e:
+            self.logger.exception(e)
 
     def run(self) -> None:
         """SevenBotを起動します。"""
