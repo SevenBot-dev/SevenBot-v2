@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Type
 
 import discord
 from discord.ext import commands, tasks
+from motor import motor_asyncio as motor
 
 if TYPE_CHECKING:
     from .exts._common import Cog
@@ -28,6 +29,7 @@ class SevenBot(commands.Bot):
         self.prev_hash = {}
         self.prev_commands = []
         self.logger = logging.getLogger("SevenBot")
+        self.db = motor.AsyncIOMotorClient(os.environ["MONGO_URI"])
 
     async def on_ready(self) -> None:
         """bot起動時のイベント"""

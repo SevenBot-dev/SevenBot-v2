@@ -4,4 +4,21 @@ services:
   main:
     build: .
     env_file:
-      - .env.production
+      - .env
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo:latest
+    restart: always
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: sevenbot
+        MONGO_INITDB_ROOT_PASSWORD: LAkAD-1lLpor0F3YHZm00HlnOSKEh4aUK7HRWLvtxWC8j4AiJyZ-btQzs_Zi7QCIaB6n8f8EXZwBoGOuCTBO2Q
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo:/data/db
+      - mongo:/data/configdb
+
+volumes:
+  mongo:
+    name: sevenbot_mongo
