@@ -15,7 +15,6 @@ class Ping(Cog):
 
     @app_commands.command(name="ping", description="Pong!")
     async def ping(self, interaction: discord.Interaction):
-        self.logger.info("Hello!")
         await interaction.response.send_message(
             embed=discord.Embed(
                 title=interaction.text("embed.title"),
