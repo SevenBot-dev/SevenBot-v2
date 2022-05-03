@@ -15,7 +15,10 @@ class GlobalChat(Cog):
 
     @group.command(name="activate", description="Activate global chat")
     async def activate(self, interaction: discord.Interaction):
-        print("Activate global chat!")
+        await interaction.response.defer()
+
+    @group.command(name="deactivate", description="Deactivate global chat")
+    async def deactivate(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
 
