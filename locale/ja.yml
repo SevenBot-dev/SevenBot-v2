@@ -1,7 +1,10 @@
+$schema: "./_scheme.yml"
 chat_input:
   ping:
-    _name: "ping"
-    _description: "Pong! SevenBotの通信速度を返します。"
+    _:
+      name: "ping"
+      description: "Pong! SevenBotの通信速度を返します。"
+      args:
     embed:
       title: ":ping_pong: Pong!"
       description: "通信速度は`{latency}ms`です。"
