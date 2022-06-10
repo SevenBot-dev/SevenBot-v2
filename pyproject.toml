@@ -12,6 +12,7 @@ colorama = "^0.4.4"
 python-dotenv = "^0.20.0"
 PyYAML = "^6.0"
 motor = "^3.0.0"
+dataclasses-json = "^0.5.7"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

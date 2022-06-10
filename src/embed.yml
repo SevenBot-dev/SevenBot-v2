@@ -1,0 +1,22 @@
+chat_input:
+  ping:
+    embed:
+      color: sevenbot
+  global:
+    activate:
+      create_confirm:
+        color: prompt
+      create_success:
+        color: success
+      already_in:
+        color: error
+      join_confirm:
+        color: prompt
+      password_failed:
+        color: error
+      join_success:
+        color: success
+      deactivate_confirm:
+        color: prompt
+      deactivated:
+        color: success

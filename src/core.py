@@ -1,4 +1,4 @@
-import hashlib
+import json
 import logging
 import os
 from base64 import b64decode
@@ -10,8 +10,9 @@ from motor import motor_asyncio as motor
 
 if TYPE_CHECKING:
     from .exts._common import Cog
-from .exts._common import CogFlag
+
 from . import lang  # noqa: F401
+from .exts._common import CogFlag
 
 
 class SevenBot(commands.Bot):
@@ -24,12 +25,13 @@ class SevenBot(commands.Bot):
             strip_after_prefix=True,
             case_insensitive=True,
             intents=intents,
-            application_id=int(b64decode(os.environ["TOKEN"].split(".")[0]))
+            application_id=int(b64decode(os.environ["TOKEN"].split(".")[0])),
         )
-        self.prev_hash = {}
+        self.prev_update = {}
         self.prev_commands = []
         self.logger = logging.getLogger("SevenBot")
-        self.db = motor.AsyncIOMotorClient(os.environ["MONGO_URI"])
+        self.db_client = motor.AsyncIOMotorClient(os.environ["MONGO_URI"])
+        self.db = self.db_client["production" if self.is_production else "development"]
 
     async def on_ready(self) -> None:
         """bot起動時のイベント"""
@@ -50,17 +52,16 @@ class SevenBot(commands.Bot):
             for file in os.listdir("src/exts/"):
                 if not file.endswith(".py") or file.startswith("_"):
                     continue
-                with open(f"src/exts/{file}", "rb") as f:
-                    file_hash = hashlib.sha256(f.read()).hexdigest()
-                if file_hash != self.prev_hash.get(file):
-                    if self.prev_hash.get(file) is not None:
+                update_time = os.path.getmtime(f"src/exts/{file}")
+                if update_time != self.prev_update.get(file):
+                    if self.prev_update.get(file) is not None:
                         self.logger.info("Reloading %s by auto reloading", file)
                         try:
                             await self.reload_extension(f"src.exts.{file[:-3]}")
                         except commands.errors.ExtensionNotLoaded:
                             await self.load_extension(f"src.exts.{file[:-3]}")
                         await self.sync()
-                    self.prev_hash[file] = file_hash
+                    self.prev_update[file] = update_time
         except Exception as e:
             self.logger.exception(e)
 
@@ -77,8 +78,10 @@ class SevenBot(commands.Bot):
         return discord.Object(int(os.environ["TEST_GUILD"]))
 
     async def sync(self) -> None:
-        current_commands = list(self.tree.walk_commands())
-        if [c.to_dict() for c in self.prev_commands] == [c.to_dict() for c in current_commands]:
+        current_commands = list(self.tree.walk_commands(guild=self.test_guild))
+        if sorted([c.to_dict() for c in self.prev_commands], key=lambda c: json.dumps(c)) == sorted(
+            [c.to_dict() for c in current_commands], key=lambda c: json.dumps(c)
+        ):
             self.logger.info("No changes, skipping sync")
             return
         self.prev_commands = current_commands

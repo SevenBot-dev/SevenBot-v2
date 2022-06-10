@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 import discord
 from discord import app_commands
 
+from src.common.embed import LocaleEmbed
+
 from ._common import Cog, CogFlag
 from src.const.color import Color
 
@@ -16,10 +18,10 @@ class Ping(Cog):
     @app_commands.command(name="ping", description="Pong!")
     async def ping(self, interaction: discord.Interaction):
         await interaction.response.send_message(
-            embed=discord.Embed(
-                title=interaction.text("embed.title"),
-                description=interaction.text("embed.description", latency=round(self.bot.latency * 1000)),
+            embed=LocaleEmbed(
+                interaction.text("embed"),
                 color=Color.sevenbot.value,
+                latency=round(self.bot.latency * 1000),
             ),
             ephemeral=True,
         )
