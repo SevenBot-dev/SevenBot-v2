@@ -6,7 +6,7 @@ authors = ["sevenc-nanashi <sevenc-nanashi@sevenbot.jp>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-"discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "eee65ac3" }
+"discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "36f039a1" }
 GitPython = "^3.1.27"
 colorama = "^0.4.4"
 python-dotenv = "^0.20.0"

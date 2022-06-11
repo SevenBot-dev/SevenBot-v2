@@ -1,8 +1,9 @@
 import asyncio
 import hashlib
+import os
 import re
 from secrets import token_urlsafe
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import discord
 from discord import app_commands
@@ -29,6 +30,8 @@ FILE_COLORS = {
     "zip": discord.Color.dark_gold(),
     "model": discord.Color.dark_magenta(),
 }
+SYSTEM_MESSAGE = "System"
+LOGO = open("src/assets/global_chat.png", "rb").read()
 
 
 class GlobalChat(Cog):
@@ -37,16 +40,16 @@ class GlobalChat(Cog):
 
     def __init__(self, bot: "SevenBot"):
         super().__init__(bot)
-        self._channels_cache = set()
+        self.channels_cache = set()
 
     async def channels(self):
-        if self._channels_cache:
-            return self._channels_cache
+        if self.channels_cache:
+            return self.channels_cache
         async for gc_room in self.bot.db.gc_room.find():
-            self._channels_cache.update(gc_room["channels"])
-        return self._channels_cache
+            self.channels_cache.update(gc_room["channels"])
+        return self.channels_cache
 
-    @group.command(name="activate", description="グローバルチャットを有効にします。")
+    @group.command(name="activate", description="グローバルチャットに接続します。")
     @app_commands.describe(gc_id="接続するグローバルチャットの名前。")
     @app_commands.rename(gc_id="id")
     async def activate(self, interaction: discord.Interaction, gc_id: str = "global"):
@@ -65,7 +68,7 @@ class GlobalChat(Cog):
         else:
             await self.join_gc_room(interaction, GlobalChatRoom.from_dict(gc_room))
 
-    @group.command(name="deactivate", description="Deactivate global chat")
+    @group.command(name="deactivate", description="グローバルチャットから切断します。")
     async def deactivate(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         current_room = await self.bot.db.gc_room.find_one({"channels": interaction.channel_id})
@@ -93,11 +96,35 @@ class GlobalChat(Cog):
                 interaction.text("common.canceled"),
                 ephemeral=True,
             )
-        await self.bot.db.gc_room.delete_one({"id": current_room.id})
-        self._channels_cache.remove(interaction.channel_id)
+        try:
+            self.channels_cache.remove(interaction.channel_id)
+        except KeyError:
+            pass
+        if len(current_room.channels) == 1:
+            await self.bot.db.gc_room.delete_one({"id": current_room.id})
+            embed = LocaleEmbed(interaction.text("deactivated_deleted"), name=current_room.name, id=current_room.id)
+        else:
+            await self.bot.db.gc_room.update_one(
+                {"id": current_room.id}, {"$pull": {"channels": interaction.channel_id}}
+            )
+            current_room.channels.remove(interaction.channel_id)
+            announce_embed = LocaleEmbed(
+                interaction.text("leave_announce"), name=interaction.guild.name, count=len(current_room.channels)
+            )
+            if interaction.guild.icon:
+                announce_embed.set_thumbnail(url=interaction.guild.icon.url)
+            await self.multi_send(
+                current_room,
+                current_room.channels,
+                embed=announce_embed,
+                username=SYSTEM_MESSAGE,
+            )
+            embed = LocaleEmbed(interaction.text("deactivated"), name=current_room.name, id=current_room.id)
+        webhook = await self.get_webhook(interaction.channel, current_room, create=False)
+        if webhook is not None:
+            await webhook.delete()
         await interaction.edit_original_message(
-            embed=LocaleEmbed(interaction.text("deactivated"), name=current_room.name, id=current_room.id),
-            ephemeral=True,
+            embed=embed,
             view=None,
         )
 
@@ -144,7 +171,7 @@ class GlobalChat(Cog):
             ephemeral=True,
         )
         await self.bot.db.gc_room.insert_one(room.to_dict())
-        self._channels_cache.add(interaction.channel_id)
+        self.channels_cache.add(interaction.channel_id)
         await modal_interaction.edit_original_message(
             embed=LocaleEmbed(
                 interaction.text("create_success"),
@@ -200,44 +227,46 @@ class GlobalChat(Cog):
             {"id": gc_room.id},
             {"$addToSet": {"channels": interaction.channel_id}},
         )
-        self._channels_cache.add(interaction.channel_id)
-        embed = LocaleEmbed(
-            interaction.text("join_announce"), name=interaction.guild.name, count=len(gc_room.channels) + 1
-        )
+        self.channels_cache.add(interaction.channel_id)
+        gc_room.channels.append(interaction.channel_id)
+        embed = LocaleEmbed(interaction.text("join_announce"), name=interaction.guild.name, count=len(gc_room.channels))
         if interaction.guild.icon:
             embed.set_thumbnail(url=interaction.guild.icon.url)
         await self.multi_send(
-            gc_room,
-            embed=embed,
+            gc_room, gc_room.except_channel(interaction.channel_id), embed=embed, username=SYSTEM_MESSAGE
         )
-        await final_interaction.response.send_message(
-            embed=LocaleEmbed(interaction.text("join_success")),
-            ephemeral=True,
+        await final_interaction.edit_original_message(
+            embed=LocaleEmbed(interaction.guild_text("join_success"), name=gc_room.name, id=gc_room.id),
+            view=None,
         )
 
-    async def multi_send(self, gc_room: GlobalChatRoom, **kwargs):
+    async def multi_send(self, gc_room: GlobalChatRoom, channels: list[int], **kwargs):
         def get_coroutine(channel_id: int):
             channel = self.bot.get_channel(channel_id)
             if channel is None:
                 return
-            self.single_send(gc_room, channel, **kwargs)
+            return self.single_send(gc_room, channel, **kwargs)
 
-        await asyncio.gather(filter(lambda c: c, map(get_coroutine, gc_room.channels)))
+        await asyncio.gather(*filter(lambda c: c, map(get_coroutine, channels)))
 
     async def single_send(self, gc_room: GlobalChatRoom, channel: discord.TextChannel, **kwargs):
-        webhook = await self.get_webhook(channel, gc_room)
+        webhook = await self.get_webhook(channel, gc_room, create=True)
         if webhook is None:
             return
-        await webhook.send(**kwargs)
+        await webhook.send(**kwargs, allowed_mentions=discord.AllowedMentions.none(), wait=True)
 
-    async def get_webhook(self, channel: discord.TextChannel, gc_room: GlobalChatRoom):
+    async def get_webhook(
+        self, channel: discord.TextChannel, gc_room: GlobalChatRoom, create: bool = False
+    ) -> Optional[discord.Webhook]:
         webhook = await channel.webhooks()
         name = f"sevenbot-global-webhook-{gc_room.id}"
         for w in webhook:
             if w.name == name:
                 return w
+        if not create:
+            return None
         try:
-            return await channel.create_webhook(name=name)
+            return await channel.create_webhook(name=name, avatar=LOGO)
         except discord.HTTPException:
             return None
 
@@ -245,15 +274,15 @@ class GlobalChat(Cog):
     async def on_message_global(self, message: discord.Message):
         if message.channel.id not in await self.channels():
             return
-        db_data = await self.bot.db.gc_room.find_one({"channel": message.channel.id})
+        db_data = await self.bot.db.gc_room.find_one({"channels": message.channel.id})
         if db_data is None:
             return
         gc_room = GlobalChatRoom.from_dict(db_data)
-        name = message.author.display_name
+        name = str(message.author)
         suffix = f"(From {message.guild.name}, ID: {message.author.id})"
-        if len(name) + len(suffix) > 32:
-            name = name[: 32 - len(suffix)]
-        name += suffix
+        if len(name + " " + suffix) > 80:
+            name = name[: 80 - len(suffix)]
+        name += " " + suffix
         embeds = []
         for attachment in message.attachments:
             if attachment.content_type:
@@ -270,6 +299,7 @@ class GlobalChat(Cog):
             embeds.append(embed)
         await self.multi_send_filtered(
             gc_room,
+            gc_room.except_channel(message.channel.id),
             content=message.clean_content,
             username=name,
             avatar_url=message.author.display_avatar,
@@ -286,11 +316,11 @@ class GlobalChat(Cog):
         else:
             return f"{size / 1073741824} GiB"
 
-    async def multi_send_filtered(self, gc_room: GlobalChatRoom, content, **kwargs):
+    async def multi_send_filtered(self, gc_room: GlobalChatRoom, channels: list[int], content, **kwargs):
         if len(content.splitlines()) > 10:
             content = "\n".join(content.splitlines()[:10]) + "\n..."
         content = INVITE_PATTERN.sub("", content)
-        await self.multi_send(gc_room, content=content, **kwargs)
+        await self.multi_send(gc_room, channels, content=content, **kwargs)
 
 
 class CreateModal(Modal):

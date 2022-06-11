@@ -41,7 +41,7 @@ chat_input:
         title: ":white_check_mark: 完了"
         description: |
           グローバルチャット`{name}`（`{id}`）に参加しました。
-      joined_announce:
+      join_announce:
         title: ":inbox_tray: 参加"
         description: |
           {name}がグローバルチャットに参加しました。
@@ -51,19 +51,6 @@ chat_input:
         description: |
           このチャンネルは既にグローバルチャット{name}（`{id}`）に参加しています。
           `/global deactivate`で退出できます。
-      not_in:
-        title: ":x: 未参加"
-        description: |
-          このチャンネルはグローバルチャットに参加していません。
-          `/global activate <ID>`で参加できます。
-      deactivate_confirm:
-        title: ":warning: 退出しますか？"
-        description: |
-          グローバルチャット{name}（`{id}`）から退出しますか？
-      deactivated:
-        title: ":white_check_mark: 完了"
-        description: |
-          グローバルチャット{name}（`{id}`）から退出しました。
       create:
         title: "グローバルチャットの作成"
         fields:
@@ -79,6 +66,30 @@ chat_input:
           password:
             name: "パスワード"
             placeholder: "チャットのパスワード。省略すると誰でも入れるようになります。"
+    deactivate:
+      deactivate_confirm:
+        title: ":warning: 退出しますか？"
+        description: |
+          グローバルチャット{name}（`{id}`）から退出しますか？
+      deactivated:
+        title: ":white_check_mark: 完了"
+        description: |
+          グローバルチャット{name}（`{id}`）から退出しました。
+      deactivated_deleted:
+        title: ":white_check_mark: 完了"
+        description: |
+          グローバルチャット{name}（`{id}`）から退出しました。
+          参加しているチャンネルが無くなったため、グローバルチャットは削除されました。
+      not_in:
+        title: ":x: 未参加"
+        description: |
+          このチャンネルはグローバルチャットに参加していません。
+          `/global activate <ID>`で参加できます。
+      leave_announce:
+        title: ":outbox_tray: 退出"
+        description: |
+          {name}がグローバルチャットから退出しました。
+          現在{count}チャンネルが参加しています。
 common:
   confirm: "はい"
   cancel: "いいえ"

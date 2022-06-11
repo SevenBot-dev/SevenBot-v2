@@ -16,7 +16,16 @@ chat_input:
         color: error
       join_success:
         color: success
+      join_announce:
+        color: success
+    deactivate:
       deactivate_confirm:
         color: prompt
       deactivated:
         color: success
+      deactivated_deleted:
+        color: success
+      leave_announce:
+        color: error
+      not_in:
+        color: error

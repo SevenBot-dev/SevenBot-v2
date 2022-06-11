@@ -1,3 +1,4 @@
+from logging import getLogger
 import os
 from typing import Any
 import discord
@@ -6,26 +7,42 @@ import yaml
 from src.common.missing import MISSING
 
 
+logger = getLogger("lang")
+
+
+class DefaultMap(dict):
+    def __missing__(self, key):
+        return key.join("{}")
+
+
 class LocaleGroup:
-    def __init__(self, code: str, data: str):
+    def __init__(self, code: str, data: str, lang: str):
         self.code = code
         self.data = data
+        self.lang = lang
 
     def __call__(self, code: str, default: Any = MISSING, **formats) -> str:
         try:
             base = self.data
             for part in code.split("."):
                 base = base[part]
-            if isinstance(base, str):
-                return LocaleText(base.format(**formats))
-            return LocaleGroup(self.code + "." + code, base)
         except KeyError:
             if default is MISSING:
-                return LocaleText(f"*{self.code}.{code}*")
+                logger.warning(f"Missing text in LocaleGroup: {self.lang}/{self.code}.{code}")
+                return LocaleText(f"*{self.code}.{code}*", self.lang)
             return default
+        else:
+            if isinstance(base, str):
+                return LocaleText(base.format_map(DefaultMap(formats)), self.lang)
+            return LocaleGroup(self.code + "." + code, base, self.lang)
 
 
 class LocaleText(str):
+    def __new__(cls, text: str, lang: str):
+        obj = str.__new__(cls, text)
+        obj.lang = lang
+        return obj
+
     @property
     def code(self):
         return self.replace("*", "")
@@ -33,7 +50,8 @@ class LocaleText(str):
     def __call__(self, code: str, default: Any = MISSING, **formats):
         if default is not MISSING:
             return default
-        return LocaleText(self[0:-1] + "." + code + self[-1])
+        logger.warning(f"Missing text in LocaleText: {self.lang}/{self.code}.{code}")
+        return LocaleText(f"*{self.code}.{code}*", self.lang)
 
 
 def get_texts(locale: str) -> dict:
@@ -79,11 +97,13 @@ def text(lang: str, code: str, **formats) -> str:
         base = texts
         for code_key in code.split("."):
             base = base[code_key]
-        if isinstance(base, str):
-            return LocaleText(base.format(**formats))
-        return LocaleGroup(code, base)
     except KeyError:
-        return LocaleText(f"*{code}*")
+        logger.warning(f"Missing text: {lang}/{code}")
+        return LocaleText(f"*{code}*", lang)
+    else:
+        if isinstance(base, str):
+            return LocaleText(base.format_map(DefaultMap(formats)), lang)
+        return LocaleGroup(code, base, lang)
 
 
 discord.Interaction.text = interaction_text  # Monkey patch

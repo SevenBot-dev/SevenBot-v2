@@ -20,7 +20,7 @@ class SevenBot(commands.Bot):
         intents = discord.Intents.all()
         intents.typing = False
         super().__init__(
-            command_prefix=["sb#", "sb."],
+            command_prefix=[],
             help_command=None,
             strip_after_prefix=True,
             case_insensitive=True,
