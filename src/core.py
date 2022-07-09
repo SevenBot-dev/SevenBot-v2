@@ -68,7 +68,14 @@ class SevenBot(commands.Bot):
     def run(self) -> None:
         """SevenBotを起動します。"""
         self.logger.info("Starting SevenBot...")
-        super().run(os.environ["TOKEN"])
+        super().run(os.environ["TOKEN"], log_handler=None)
+
+    def emoji(self, name: str):
+        return discord.utils.get(sum([list(g.emojis) for g in self.emoji_guilds], []), name=name)
+
+    @property
+    def emoji_guilds(self) -> list[discord.Guild]:
+        return [g for g in self.guilds if str(g.id) in os.environ["EMOJI_GUILDS"].split(",")]
 
     def setup(self) -> None:
         pass

@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import os
 import re
 from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Optional
@@ -41,6 +40,7 @@ class GlobalChat(Cog):
     def __init__(self, bot: "SevenBot"):
         super().__init__(bot)
         self.channels_cache = set()
+        self.send_semaphore = asyncio.Semaphore(100)
 
     async def channels(self):
         if self.channels_cache:
@@ -240,20 +240,23 @@ class GlobalChat(Cog):
             view=None,
         )
 
-    async def multi_send(self, gc_room: GlobalChatRoom, channels: list[int], **kwargs):
+    async def multi_send(self, gc_room: GlobalChatRoom, channels: list[int], **kwargs) -> list[discord.WebhookMessage]:
         def get_coroutine(channel_id: int):
             channel = self.bot.get_channel(channel_id)
             if channel is None:
                 return
             return self.single_send(gc_room, channel, **kwargs)
 
-        await asyncio.gather(*filter(lambda c: c, map(get_coroutine, channels)))
+        return await asyncio.gather(*filter(lambda c: c, map(get_coroutine, channels)))
 
-    async def single_send(self, gc_room: GlobalChatRoom, channel: discord.TextChannel, **kwargs):
+    async def single_send(
+        self, gc_room: GlobalChatRoom, channel: discord.TextChannel, **kwargs
+    ) -> discord.WebhookMessage:
         webhook = await self.get_webhook(channel, gc_room, create=True)
         if webhook is None:
             return
-        await webhook.send(**kwargs, allowed_mentions=discord.AllowedMentions.none(), wait=True)
+        async with self.send_semaphore:
+            return await webhook.send(**kwargs, allowed_mentions=discord.AllowedMentions.none(), wait=True)
 
     async def get_webhook(
         self, channel: discord.TextChannel, gc_room: GlobalChatRoom, create: bool = False
@@ -297,6 +300,7 @@ class GlobalChat(Cog):
             if content_type.startswith("image/"):
                 embed.set_image(url=attachment.url)
             embeds.append(embed)
+        self.bot.loop.create_task(message.add_reaction(self.bot.emoji("clock")))
         await self.multi_send_filtered(
             gc_room,
             gc_room.except_channel(message.channel.id),
@@ -305,6 +309,10 @@ class GlobalChat(Cog):
             avatar_url=message.author.display_avatar,
             embeds=embeds,
         )
+        self.bot.loop.create_task(message.remove_reaction(self.bot.emoji("clock"), self.bot.user))
+        self.bot.loop.create_task(message.add_reaction(self.bot.emoji("check")))
+        await asyncio.sleep(3)
+        await message.remove_reaction(self.bot.emoji("check"), self.bot.user)
 
     def get_size(self, size: int):
         if size < 1024:
@@ -320,7 +328,7 @@ class GlobalChat(Cog):
         if len(content.splitlines()) > 10:
             content = "\n".join(content.splitlines()[:10]) + "\n..."
         content = INVITE_PATTERN.sub("", content)
-        await self.multi_send(gc_room, channels, content=content, **kwargs)
+        return await self.multi_send(gc_room, channels, content=content, **kwargs)
 
 
 class CreateModal(Modal):
