@@ -8,3 +8,4 @@ class Color(Enum):
     success = discord.Color.green()
     info = discord.Color.blue()
     warning = discord.Color.orange()
+    prompt = discord.Color.dark_gray()

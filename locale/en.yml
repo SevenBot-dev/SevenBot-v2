@@ -1,7 +1,6 @@
 chat_input:
   ping:
     _:
-      name: "ping"
       description: "Pong! Returns the latency of SevenBot."
       args:
     embed:

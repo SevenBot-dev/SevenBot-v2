@@ -2,9 +2,96 @@ $schema: "./_scheme.yml"
 chat_input:
   ping:
     _:
-      name: "ping"
       description: "Pong! SevenBotの通信速度を返します。"
       args:
     embed:
       title: ":ping_pong: Pong!"
       description: "通信速度は`{latency}ms`です。"
+  global:
+    _:
+      description: "グローバルチャット。"
+    activate:
+      _:
+        description: "グローバルチャットを有効にします。"
+      create_confirm:
+        title: ":x: 不明なグローバルチャット"
+        description: |
+          チャット`{name}`が見付かりませんでした。
+          作成しますか？
+      create_success:
+        title: ":white_check_mark: 完了"
+        description: |
+          グローバルチャット{name}（`{id}`）を作成しました。
+          `/global activate {id}`で有効にします。
+      join_confirm:
+        title: ":question: 参加確認"
+        description: |
+          グローバルチャット`{name}`（`{id}`）に参加しますか？
+          >>> {description}
+      join_password:
+        title: "パスワードの確認"
+        fields:
+          password:
+            name: "パスワード"
+            placeholder: "パスワードを入力してください。"
+      password_failed:
+        title: ":x: パスワードが違います"
+        description: "パスワードが違います。"
+      join_success:
+        title: ":white_check_mark: 完了"
+        description: |
+          グローバルチャット`{name}`（`{id}`）に参加しました。
+      join_announce:
+        title: ":inbox_tray: 参加"
+        description: |
+          {name}がグローバルチャットに参加しました。
+          現在{count}チャンネルが参加しています。
+      already_in:
+        title: ":x: 参加済み"
+        description: |
+          このチャンネルは既にグローバルチャット{name}（`{id}`）に参加しています。
+          `/global deactivate`で退出できます。
+      create:
+        title: "グローバルチャットの作成"
+        fields:
+          id:
+            name: "チャットID"
+            placeholder: "接続に使用するチャットID。"
+          name:
+            name: "チャット名"
+            placeholder: "チャット名。デフォルトではチャットIDが使用されます。"
+          description:
+            name: "説明"
+            placeholder: "チャットの説明。接続時に表示されます。"
+          password:
+            name: "パスワード"
+            placeholder: "チャットのパスワード。省略すると誰でも入れるようになります。"
+    deactivate:
+      deactivate_confirm:
+        title: ":warning: 退出しますか？"
+        description: |
+          グローバルチャット{name}（`{id}`）から退出しますか？
+      deactivated:
+        title: ":white_check_mark: 完了"
+        description: |
+          グローバルチャット{name}（`{id}`）から退出しました。
+      deactivated_deleted:
+        title: ":white_check_mark: 完了"
+        description: |
+          グローバルチャット{name}（`{id}`）から退出しました。
+          参加しているチャンネルが無くなったため、グローバルチャットは削除されました。
+      not_in:
+        title: ":x: 未参加"
+        description: |
+          このチャンネルはグローバルチャットに参加していません。
+          `/global activate <ID>`で参加できます。
+      leave_announce:
+        title: ":outbox_tray: 退出"
+        description: |
+          {name}がグローバルチャットから退出しました。
+          現在{count}チャンネルが参加しています。
+common:
+  confirm: "はい"
+  cancel: "いいえ"
+  timeouted: "タイムアウトしました。もう一度最初からやり直してください。"
+  canceled: "キャンセルしました。"
